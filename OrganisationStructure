@@ -1,0 +1,512 @@
+import java.io.*;
+import java.util.*;
+import java.util.Collections;
+import java.util.Vector;
+
+
+public class OrgHierarchy implements OrgHierarchyInterface{
+    private int size=0;
+    private AVLEmployee root=null;
+
+
+
+
+    //Constructor for OrgHierarchy
+    public OrgHierarchy(){
+    }
+
+
+    public class AVLEmployee {
+        public int id;
+        public int level;
+        public int height;
+        public int balance;
+        public AVLEmployee Boss;
+        public Vector<AVLEmployee> children;
+        public AVLEmployee left;
+        public AVLEmployee right;
+        public AVLEmployee parent;
+
+        public AVLEmployee(int id, int level, AVLEmployee Boss) {
+
+            this.id=id;
+            this.level= level;
+            this.Boss= Boss;
+            children= new Vector<AVLEmployee>();
+        }
+
+
+        public AVLEmployee(int id){
+            this.id=id;
+            children= new Vector<AVLEmployee>();
+        }
+
+
+    }
+
+
+
+    //methods of AVLTree
+    private int height(AVLEmployee node){
+        if (node==null)
+            return -1;
+        else
+            return node.height;
+    }
+
+
+
+    public void insert(int newid){
+        if(root==null) {
+            root = new AVLEmployee(newid, 1, null);
+            size+=1;
+        }
+
+        else{
+
+            AVLEmployee n= root;
+            AVLEmployee parent;
+
+            while(n.id!= newid){
+
+
+
+                parent=n;
+                int direction=0;
+                if(n.id> newid) {
+                    direction = -1;
+                    n=n.left;
+                }
+                else{
+                    direction =1;
+                    n=n.right;
+                }
+
+                if(n==null){
+                    if(direction==-1) {
+                        parent.left = new AVLEmployee(newid, 0, null);
+                        size+=1;
+                    }
+
+                    else{
+                        parent.right= new AVLEmployee(newid, 0, null);
+                        size+=1;
+                    }
+                    rebalance(parent);
+                    break;
+                }
+            }
+        }
+
+    }
+
+
+
+    private void delete(AVLEmployee node){
+        if (root==null)
+            return;
+        //leaf node deletion
+        if(node.left==null && node.right==null){
+            if (node.parent==null) {
+                root = null;
+                size-=1;
+            }
+
+            else{
+                AVLEmployee parent=node.parent;
+                if(parent.left==node)
+                    parent.left=null;
+                else
+                    parent.right=null;
+                size-=1;
+                rebalance(parent);
+            }
+            return;
+        }
+
+        if(node.left!=null){
+            AVLEmployee child= node.left;
+            while(child.right!=null){
+                child= child.right;
+            }
+            node.id= child.id;
+            delete(child);
+        }
+
+        else{
+            AVLEmployee child=node.right;
+            while(child.left!=null){
+                child=child.left;
+            }
+            node.id= child.id;
+            delete(child);
+        }
+
+
+    }
+
+
+
+
+    private void delete (int del_id){
+        if(root==null)
+            return;
+        AVLEmployee parent= root;
+        AVLEmployee child= root;
+
+        while(child!=null){
+            parent= child;
+            if(parent.id> del_id )
+                child= parent.left;
+            else
+                child= parent.right;
+            if(del_id== parent.id){
+                delete(parent);
+
+                return;
+            }
+        }
+    }
+
+
+    private void rebalance(AVLEmployee node){
+        setBalance(node);
+        if(node.balance==-2){
+            if(height(node.left.left)>=height(node.left.right))
+                node= rotateRight(node);
+            else
+                node=DoubleRotateLR(node);
+
+        }
+
+        else if(node.balance==2){
+            if(height(node.right.right)>=height(node.right.left))
+                node= rotateLeft(node);
+            else
+                node= DoubleRotateRL(node);
+        }
+
+        if(node.parent!=null){
+            rebalance(node.parent);
+        }
+        else
+            root= node;
+    }
+
+
+    private AVLEmployee rotateLeft(AVLEmployee a){
+        AVLEmployee b= a.right;
+        b.parent= a.parent;
+        a.right= b.left;
+        if(a.right!=null)
+            a.right.parent=a;
+        b.left=a;
+        a.parent=b;
+
+
+        if(b.parent!=null){
+            if(b.parent.right==a)
+                b.parent.right=b;
+            else
+                b.parent.left=b;
+        }
+
+        setBalance(a, b);
+        return b;
+    }
+
+
+    private AVLEmployee rotateRight(AVLEmployee a){
+        AVLEmployee b= a.left;
+        b.parent=a.parent;
+        a.left=b.right;
+        if(a.left!=null)
+            a.left.parent=a;
+        b.right=a;
+        a.parent=b;
+
+        if(b.parent!=null){
+            if(b.parent.right==a)
+                b.parent.right=b;
+            else
+                b.parent.left=b;
+        }
+
+        setBalance(a,b);
+        return b;
+    }
+
+    private AVLEmployee DoubleRotateLR(AVLEmployee a){
+        a.left= rotateLeft(a.left);
+        return rotateRight(a);
+    }
+
+    private AVLEmployee DoubleRotateRL(AVLEmployee a){
+        a.right= rotateRight(a.right);
+        return rotateLeft(a);
+    }
+
+
+
+
+    private void setBalance(AVLEmployee a, AVLEmployee b){
+        reheight(a);
+        a.balance= height(a.right)- height(a.left);
+
+        reheight(b);
+        b.balance= height(b.right)- height(b.left);
+    }
+
+
+
+    private void setBalance(AVLEmployee a){
+        reheight(a);
+        a.balance= height(a.right)- height(a.left);
+
+    }
+
+
+
+
+    private void reheight(AVLEmployee a){
+        if(a!=null)
+            a.height= 1+ Math.max(height(a.right), height(a.left));
+    }
+
+
+
+
+    public boolean search(int id) {
+        AVLEmployee result = searchHelper(this.root, id);
+        if (result != null)
+            return true;
+
+        return false;
+    }
+
+    private AVLEmployee searchHelper(AVLEmployee root, int key) {
+        // root is null or key is present at root
+        if (root == null || root.id == key) return root;
+
+        // key is greater than root's key
+        if (root.id > key)
+            return searchHelper(root.left, key); // call the function on the node's left child
+
+        // key is less than root's key then
+        // call the function on the node's right child as it is greater
+        return searchHelper(root.right, key);
+    }
+
+
+
+
+
+
+
+    //methods specific to organisation
+    public boolean isEmpty(){
+
+        return (size==0);
+    }
+
+    public int size(){
+
+        return size;
+    }
+
+
+    public int level(int id) throws IllegalIDException, EmptyTreeException{
+        if(size==0)
+            throw new EmptyTreeException("Organisation is empty");
+        if(!search(id))
+            throw new IllegalIDException("No employee with the given ID exists");
+
+        AVLEmployee Node= searchHelper(root, id);
+        return Node.level;
+    }
+
+
+
+    public void hireOwner(int id) throws NotEmptyException{
+        if(size!=0)
+            throw new NotEmptyException("Owner already exists");
+
+        insert(id);
+
+
+
+    }
+
+
+
+    public void hireEmployee(int id, int bossid) throws IllegalIDException, EmptyTreeException{
+        if(size==0)
+            throw new EmptyTreeException("Organisation is empty");
+        if(search(id))
+            throw new IllegalIDException("Employee already exists");
+        if(!search(bossid))
+            throw new IllegalIDException("Boss doesn't exist");
+
+
+        insert(id);
+        AVLEmployee Manage= searchHelper(root, bossid);
+        AVLEmployee Node= searchHelper(root, id);
+        Manage.children.add(Node);
+        Node.level= level(bossid)+1;
+        Node.Boss= Manage;
+
+
+    }
+
+
+    public void fireEmployee(int id) throws IllegalIDException,EmptyTreeException{
+        if(size==0)
+            throw new EmptyTreeException("Organisation is empty");
+        AVLEmployee Node= searchHelper(root, id);
+        if(Node==null)
+            throw new IllegalIDException("No employee with the given ID exists");
+        if(Node.children.size()!=0)
+            throw new IllegalIDException("Employee manages other employees, cannot be deleted");
+        delete(Node);
+        Node.Boss.children.remove(Node);
+
+    }
+
+
+
+    public void fireEmployee(int id, int manageid) throws IllegalIDException,EmptyTreeException{
+        if(size==0)
+            throw new EmptyTreeException("Organisation is empty");
+        AVLEmployee Node= searchHelper(root, id);
+        if(Node==null)
+            throw new IllegalIDException("No employee with the given ID exists");
+        AVLEmployee NewBoss= searchHelper(root, manageid);
+        if(NewBoss==null)
+            throw new IllegalIDException("No manager with the given ID exists");
+
+        delete(Node);
+        Node.Boss.children.remove(Node);
+        int n_employees= Node.children.size();
+        for(int i=0; i<n_employees; i++){
+            NewBoss.children.add(Node.children.get(i));
+        }
+
+    }
+
+
+
+    public int boss(int id) throws IllegalIDException,EmptyTreeException{
+        if(size==0)
+            throw new EmptyTreeException("Organisation is empty");
+        AVLEmployee Node= searchHelper(root, id);
+        if(Node==null)
+            throw new IllegalIDException("No employee with the given ID exists");
+        if(Node==root)
+            return -1;
+        return Node.Boss.id;
+
+    }
+
+
+
+
+    public int lowestCommonBoss(int id1, int id2) throws IllegalIDException,EmptyTreeException{
+        if(size==0)
+            throw new EmptyTreeException("Organisation is empty");
+        AVLEmployee Node1= searchHelper(root, id1);
+        if(Node1==null)
+            throw new IllegalIDException("No employee with the given ID exists");
+        AVLEmployee Node2= searchHelper(root, id2);
+        if(Node2==null)
+            throw new IllegalIDException("No employee with the given ID exists");
+        int l1= Node1.level;
+        int l2= Node2.level;
+        if(l1>l2) {
+            for (int i = 1; i <= l1 - l2; i++) {
+                Node1 = Node1.Boss;
+            }
+        }
+
+        else{
+            for(int i=1; i<=l2-l1; i++){
+                Node2= Node2.Boss;
+            }
+        }
+
+        boolean flag= false;
+        while(!flag && (Node1.id!=Node2.id)){
+            if(Node1.id==Node2.id)
+                flag= true;
+            else{
+                Node1= Node1.Boss;
+                Node2= Node2.Boss;
+            }
+        }
+        return Node1.id;
+
+    }
+
+    public String toString(int id) throws IllegalIDException, EmptyTreeException{
+        if(size==0)
+            throw new EmptyTreeException("Organisation is empty");
+        AVLEmployee Node= searchHelper(root, id);
+        if(Node==null)
+            throw new IllegalIDException("No employee with the given ID exists");
+
+
+        Vector<AVLEmployee> v= new Vector< AVLEmployee>();
+
+        v.add(Node);
+        int count=1;
+        int i=0;
+        while(count!=0){
+            AVLEmployee p= v.get(i);
+            i+=1;
+            count-=1;
+            for(int j=0; j< p.children.size(); j++){
+                v.add(p.children.get(j));
+                count+=1;
+            }
+        }
+
+        StringBuilder sb= new StringBuilder();
+        int start_level= Node.level;
+        int k=1;
+        while(k< v.size()){
+            Vector<Integer> a= new Vector<Integer>();
+            while(v.get(k).level== start_level+1){
+                a.add(v.get(k).id);
+                k+=1;
+            }
+            start_level+=1;
+            Collections.sort(a);
+            for(int ij=0; ij< a.size(); ij++){
+                sb.append(a.get(ij));
+                sb.append("");
+                sb.append(",");
+            }
+
+
+
+
+
+        }
+        return sb.toString();
+
+    }
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
